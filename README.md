@@ -276,10 +276,11 @@ aws ec2 associate-route-table \
   --route-table-id ${PrivateRouteTableId}
 ```
 
-### 5. Security Groups
-- WebTierSG: Allows HTTP/SSH from internet
-- AppTierSG: Allows HTTP from Web Tier SG
-- DbTierSG: Allows MySQL (3306) from App Tier SG
+### 3. NAT Gateway (for App Tier)
+- Elastic IP allocation
+- NAT Gateway in public subnet
+- Private route table routes `0.0.0.0/0` through NAT Gateway
+- Associated with App Tier subnets
 
 ### 6. Security Groups  
 - **6a. WebTierSG – allows HTTP, SSH**
