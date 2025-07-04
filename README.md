@@ -3,35 +3,36 @@
 
 ## 📘 Project Overview
 
-This project aims to **build a complete, production-grade 3-Tier Web Architecture on AWS using Bash scripting and AWS CLI**.  
-It follows the **Infrastructure as Code (IaC)** principle and demonstrates:
+This project demonstrates how to deploy a complete **production-grade 3-Tier Web Architecture** on AWS using **AWS CLI** and **Bash scripting**, following **Infrastructure as Code (IaC)** best practices.
 
-- ✅ Automated provisioning of scalable cloud infrastructure  
-- 🔐 Network isolation across layers (Web, App, DB)  
-- 🏗️ Real-world modular and secure design  
-- 🚀 DevOps practices using CLI-based automation  
+### ✅ Key Highlights
+- Fully automated infrastructure provisioning
+- Scalable and modular design
+- Network isolation between tiers
+- Real-world routing setup using route tables and NAT Gateway
+- Secure architecture using VPC, subnets, SGs, and load balancers
 
 ---
 
-## 🧱 What is a 3-Tier Architecture?
-
-A **3-tier architecture** separates an application into three layers:
+## 🧱 3-Tier Architecture Explained
 
 ### 1. 🌐 Web Tier (Frontend)
-- Public-facing
-- Accepts HTTP/HTTPS traffic
-- EC2 instances behind an **Internet-facing ALB**
+- Hosted in public subnets
+- Exposed to the internet via an **Internet-facing Application Load Balancer**
+- Serves static/dynamic content
+- EC2 instances created via Auto Scaling Group
 
 ### 2. 🔧 Application Tier (Backend)
-- Business logic layer
-- Hosted in private subnets
-- Communicates with Web Tier only
-- Behind an **Internal ALB**
+- Deployed in private subnets
+- Communicates only with Web Tier and DB Tier
+- Auto Scaling Group behind **Internal Load Balancer**
+- Uses private routing with outbound internet access (for updates, packages)
 
 ### 3. 🗄️ Database Tier
-- Data storage (Amazon RDS)
-- Completely private
-- Only accessible by App Tier
+- MySQL (Amazon RDS) hosted in private subnets
+- Only accepts traffic from App Tier
+- No internet access for security
+- Uses DB subnet group with private subnet association
 
 > 🎯 **Benefits**: Scalability, Security, Maintainability
 
@@ -45,20 +46,20 @@ A **3-tier architecture** separates an application into three layers:
 
 ## 🛠️ Tools & AWS Services Used
 
-| Tool/Service           | Purpose                              |
-|------------------------|--------------------------------------|
-| AWS CLI                | Infrastructure automation            |
-| Bash Scripting         | CLI command sequencing               |
-| Amazon VPC             | Virtual private cloud                |
-| Subnets                | Public & Private tier segmentation   |
-| Internet Gateway       | Internet access for public tier      |
-| Route Tables           | Network routing                      |
-| Security Groups        | Access control                       |
-| Application Load Balancer (ALB) | Load distribution             |
-| Target Groups & Listeners | Load balancer routing             |
-| Launch Templates       | EC2 configuration templates          |
-| Auto Scaling Groups    | Elastic scaling of compute resources |
-| Amazon RDS             | Managed relational DB                |
+
+| Service                  | Purpose                                     |
+|--------------------------|---------------------------------------------|
+| AWS CLI + Bash           | Scripting and automation                    |
+| Amazon VPC               | Network isolation                           |
+| Subnets (Public/Private) | Tier-based segmentation                     |
+| Internet Gateway         | Public subnet internet access               |
+| Route Tables             | Control routing between tiers               |
+| NAT Gateway              | App Tier internet access (lightly integrated) |
+| Security Groups          | Controlled traffic flows                    |
+| Application Load Balancers| Load balancing Web & App Tier             |
+| Launch Templates         | EC2 launch configuration                    |
+| Auto Scaling Groups      | Scalable Web & App compute layer            |
+| Amazon RDS (MySQL)       | Managed relational database                 |
 
 ---
 
@@ -275,9 +276,13 @@ aws ec2 associate-route-table \
   --route-table-id ${PrivateRouteTableId}
 ```
 
+### 5. Security Groups
+- WebTierSG: Allows HTTP/SSH from internet
+- AppTierSG: Allows HTTP from Web Tier SG
+- DbTierSG: Allows MySQL (3306) from App Tier SG
 
-### 5. Security Groups  
-- **5a. WebTierSG – allows HTTP, SSH**
+### 6. Security Groups  
+- **6a. WebTierSG – allows HTTP, SSH**
 ```
 aws ec2 create-security-group \
     --group-name WebSG \
@@ -298,7 +303,7 @@ aws ec2 authorize-security-group-ingress \
     --port 80 \
     --cidr 0.0.0.0/0
 ```
-- **5b. AppTierSG – allows only internal traffic from Web Tier** 
+- **6b. AppTierSG – allows only internal traffic from Web Tier** 
 ```
 aws ec2 create-security-group \
     --group-name AppSG \
@@ -319,7 +324,7 @@ aws ec2 authorize-security-group-ingress \
     --port 80 \
     --source-group ${WebTierSecurityGroupId}
 ```
-- **5c. DbTierSG – allows traffic only from App Tier**
+- **6c. DbTierSG – allows traffic only from App Tier**
 ```
 aws ec2 create-security-group \
     --group-name DbSG \
@@ -344,12 +349,12 @@ aws ec2 authorize-security-group-ingress \
 echo "Created Networking part successfully...."
 sleep(4)
 ```
-### 6. Target Groups  
+### 7. Target Groups  
 ```
 echo "Creating.... ALB, ASG, RDS part"
 
 ```
-- **6a. WebTier Target Group**  
+- **7a. WebTier Target Group**  
 ```
 aws elbv2 create-target-group \
     --name WebTierTG \
@@ -364,7 +369,7 @@ WebTGArn=$(aws elbv2 describe-target-groups \
     --query TargetGroups[0].TargetGroupArn \
     --output text)
 ```
-- **6b. AppTier Target Group**
+- **7b. AppTier Target Group**
 ```
 aws elbv2 create-target-group \
     --name AppTierTG \
@@ -379,8 +384,8 @@ AppTGArn=$(aws elbv2 describe-target-groups \
     --query TargetGroups[0].TargetGroupArn \
     --output text)
 ```
-### 7. Load Balancers  
-- **7a. Internet-facing Load Balancer for Web Tier** 
+### 8. Load Balancers  
+- **8a. Internet-facing Load Balancer for Web Tier** 
 ```
 aws elbv2 create-load-balancer \
     --name WebTierInternetLB \
@@ -397,7 +402,7 @@ WebLBArn=$(aws elbv2 describe-load-balancers \
 
 
 ```
-- **7b. Internal Load Balancer for App Tier**
+- **8b. Internal Load Balancer for App Tier**
 
 ```
 aws elbv2 create-load-balancer \
@@ -414,8 +419,8 @@ AppLBArn=$(aws elbv2 describe-load-balancers \
     --output text)
 ```
 
-### 8. Listeners and Routing Rules  
-- **8a. Web Tier Listener (e.g., Port 80)**  
+### 9. Listeners and Routing Rules  
+- **9a. Web Tier Listener (e.g., Port 80)**  
 ```
 aws elbv2 create-listener \
     --load-balancer-arn ${WebLBArn} \
@@ -424,7 +429,7 @@ aws elbv2 create-listener \
     --default-actions Type=forward,TargetGroupArn=${WebTGArn}
 ```
 
-- **8b. App Tier Listener (e.g., Port 8080)**
+- **9b. App Tier Listener (e.g., Port 8080)**
 ```
 aws elbv2 create-listener \
     --load-balancer-arn ${AppLBArn} \
@@ -434,7 +439,7 @@ aws elbv2 create-listener \
 
 ```
 
-### 9. Launch Templates  
+### 10. Launch Templates  
 ```
 WebSGId=$(aws ec2 describe-security-groups \
   --filters "Name=tag:Name,Values=WebSG" "Name=vpc-id,Values=${VpcId}" \
@@ -485,8 +490,8 @@ EOF
   }"
   ```
 
-### 10. Auto Scaling Groups  
-- **10a. ASG for Web Tier**  
+### 11. Auto Scaling Groups  
+- **11a. ASG for Web Tier**  
 ```
 aws autoscaling create-auto-scaling-group \
   --auto-scaling-group-name WebASG \
@@ -500,7 +505,7 @@ aws autoscaling create-auto-scaling-group \
   --health-check-grace-period 120 \
   --tags "Key=Name,Value=WebASGInstance,PropagateAtLaunch=true"
 ```
-- **10b. ASG for App Tier**
+- **11b. ASG for App Tier**
 ```
 aws autoscaling create-auto-scaling-group \
   --auto-scaling-group-name AppASG \
@@ -514,7 +519,7 @@ aws autoscaling create-auto-scaling-group \
   --health-check-grace-period 120 \
   --tags "Key=Name,Value=AppASGInstance,PropagateAtLaunch=true"
 ```
-- **10c. Scaling policies (based on CPU or network usage)**
+- **11c. Scaling policies (based on CPU or network usage)**
 ```
 aws autoscaling put-scaling-policy \
   --policy-name WebTargetTrackingPolicy \
@@ -530,8 +535,8 @@ aws autoscaling put-scaling-policy \
 
 ```
 
-### 11. RDS Setup  
-- **11a. Create a DB Subnet Group (must include 2 subnets in different AZs)**
+### 12. RDS Setup  
+- **12a. Create a DB Subnet Group (must include 2 subnets in different AZs)**
 ```
 aws rds create-db-subnet-group \
   --db-subnet-group-name rdsDbSG \
@@ -540,7 +545,7 @@ aws rds create-db-subnet-group \
   --tags Key=Name,Value=DBSubnetGroup
 
 ```  
-- **11b. Create the RDS instance:**
+- **12b. Create the RDS instance:**
   - Choose engine (e.g., MySQL, PostgreSQL)
   - Set instance size, DB name, credentials
   - Enable multi-AZ (optional)
