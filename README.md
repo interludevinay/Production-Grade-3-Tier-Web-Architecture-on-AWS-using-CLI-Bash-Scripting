@@ -14,7 +14,7 @@ This project demonstrates how to deploy a complete **production-grade 3-Tier Web
 
 ---
 
-## 🧱 3-Tier Architecture Explained
+## 🧱 What is a 3-Tier Architecture?
 
 ### 1. 🌐 Web Tier (Frontend)
 - Hosted in public subnets
