@@ -218,7 +218,7 @@ PrivateDbSubnetId2=$(aws ec2 describe-subnets \
 ```
 
 ### 4. Route Tables  
-- **4a. Create a route table**  
+- **4a. Create a route table (Public)**  
 ```
 aws ec2 create-route-table \
     --vpc-id ${VpcId} \
@@ -230,14 +230,14 @@ RouteTableId=$(aws ec2 describe-route-tables \
     --query RouteTables[].RouteTableId \
     --output text)
 ```
-- **4b. Add route to Internet Gateway**  
+- **4b. Add route to Internet Gateway (Public)**  
 ```
 aws ec2 create-route \
     --route-table-id ${RouteTableId} \
     --destination-cidr-block 0.0.0.0/0 \
     --gateway-id ${IgwId}
 ```
-- **4c. Associate public subnets with this route table**
+- **4c. Associate public subnets with this route table (Public)**
 ```
 aws ec2 associate-route-table \
   --subnet-id ${SubnetId1} \
@@ -246,6 +246,35 @@ aws ec2 associate-route-table \
   --subnet-id ${SubnetId2} \
   --route-table-id ${RouteTableId}
 ```
+
+- **4d. Create a route table (Private)**  
+```
+aws ec2 create-route-table \
+    --vpc-id ${VpcId} \
+    --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=PrivateRT}]'
+```
+```
+PrivateRouteTableId=$(aws ec2 describe-route-tables \
+    --filters "Name=tag:Name,Values=PrivateRT" \
+    --query RouteTables[].RouteTableId \
+    --output text)
+```
+- **4e. Associate private subnets with this route table (Private)**
+```
+aws ec2 associate-route-table \
+  --subnet-id ${PrivateSubnetId1} \
+  --route-table-id ${PrivateRouteTableId}
+aws ec2 associate-route-table \
+  --subnet-id ${PrivateSubnetId2} \
+  --route-table-id ${PrivateRouteTableId}
+aws ec2 associate-route-table \
+  --subnet-id ${PrivateDbSubnetId1} \
+  --route-table-id ${PrivateRouteTableId}
+aws ec2 associate-route-table \
+  --subnet-id ${PrivateDbSubnetId2} \
+  --route-table-id ${PrivateRouteTableId}
+```
+
 
 ### 5. Security Groups  
 - **5a. WebTierSG – allows HTTP, SSH**
