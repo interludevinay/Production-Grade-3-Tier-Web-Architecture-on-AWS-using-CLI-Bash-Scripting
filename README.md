@@ -515,6 +515,21 @@ EOF
   ```
   - **App Tier EC2 Instances**
   ```
+  USER_DATA_App=$(base64 -w 0 <<EOF
+  #!/bin/bash
+
+  # mysql client
+  sudo apt update
+  sudo apt install -y mysql-client
+  
+  # mysql server
+  sudo apt install -y mysql-server
+  sudo systemctl start mysql
+  sudo systemctl enable mysql
+  EOF
+  )
+  ```
+  ```
   aws ec2 create-launch-template \
   --launch-template-name AppTierLaunchTemplate \
   --version-description "v1" \
@@ -522,7 +537,8 @@ EOF
     \"ImageId\": \"ami-0f918f7e67a3323f0\",
     \"InstanceType\": \"t2.micro\",
     \"KeyName\": \"dev\",
-    \"SecurityGroupIds\": [\"${AppTierSecurityGroupId}\"]
+    \"SecurityGroupIds\": [\"${AppTierSecurityGroupId}\"],
+    \"UserData\": \"${USER_DATA_App}\"
   }"
   ```
 
