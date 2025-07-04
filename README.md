@@ -276,12 +276,47 @@ aws ec2 associate-route-table \
   --route-table-id ${PrivateRouteTableId}
 ```
 
-### 3. NAT Gateway (for App Tier)
+### 5. NAT Gateway (for App Tier)
 - Elastic IP allocation
-- NAT Gateway in public subnet
-- Private route table routes `0.0.0.0/0` through NAT Gateway
-- Associated with App Tier subnets
+```
+EipAllocationId=$(aws ec2 allocate-address \
+  --domain vpc \
+  --query 'AllocationId' \
+  --output text)
+```
 
+- NAT Gateway in public subnet
+```
+NatGatewayId=$(aws ec2 create-nat-gateway \
+  --subnet-id ${SubnetId1} \
+  --allocation-id $EipAllocationId \
+  --query 'NatGateway.NatGatewayId' \
+  --output text)
+```
+- Create a Route Table for Private Subnets
+```
+PrivateRTId=$(aws ec2 create-route-table \
+  --vpc-id ${VpcId} \
+  --query 'RouteTable.RouteTableId' \
+  --output text)
+```
+- Private route table routes `0.0.0.0/0` through NAT Gateway
+```
+aws ec2 create-route \
+  --route-table-id ${PrivateRTId} \
+  --destination-cidr-block 0.0.0.0/0 \
+  --nat-gateway-id ${NatGatewayId}
+```
+- Associated with App Tier subnets with route table
+```
+aws ec2 associate-route-table \
+  --subnet-id ${PrivateSubnetId1} \
+  --route-table-id ${PrivateRTId}
+
+aws ec2 associate-route-table \
+  --subnet-id ${PrivateSubnetId2} \
+  --route-table-id ${PrivateRTId}
+```
 ### 6. Security Groups  
 - **6a. WebTierSG – allows HTTP, SSH**
 ```
@@ -598,8 +633,10 @@ This section explains how to **test and validate** critical components of the 3-
 - 🛡️ **Database access via NAT Gateway** – For App Tier instances in private subnets
 
 > ⚠️ **Important:**  
-> These steps are for **testing and development** only.  
-> ❌ NAT Gateway and internet access to private subnets should be **removed before production deployment** including Security Group modification.
+> These steps are for **testing and development** purposes only.  
+> ⚠️ In a **production** environment, private subnets may **retain NAT Gateway access** (e.g., for package updates or patching),  
+> but **Security Group rules must be hardened** to restrict any unnecessary inbound or outbound access, especially from the internet, just for testing purpose.
+
 
 ---
 
@@ -692,9 +729,9 @@ stress --cpu 2 --timeout 180
 
 ### 🔍 Problem
 
-The **App Tier** resides in a **private subnet**, which **does not have internet access by default**.
+The **App Tier** resides in a **private subnet**, which **does not have internet access by default** so, that's why we create **NAT Gateway** for that.
 
-To install packages (e.g., MySQL/PostgreSQL client) and verify **connectivity to an RDS database** from an EC2 instance in the App Tier, we **temporarily introduce a NAT Gateway**.
+To install packages (e.g., MySQL/PostgreSQL client) and verify **connectivity to an RDS database** from an EC2 instance in the App Tier, we **introduce a NAT Gateway** and **temporary modify Security groups**.
 
 ---
 
@@ -722,26 +759,6 @@ These rules ensure secure and layered communication between the tiers:
 - The **Database Tier** accepts connections only from the App Tier.
 ---
 
-### ⚙️ NAT Gateway Setup (Temporary)
-
-1. **Create a NAT Gateway** in a **Public Subnet**  
-   Example: `myapp-dev-web-subnet-az1`
-
-2. **Attach an Elastic IP (EIP)** to the NAT Gateway.
-
-3. **Create a Route Table** and add the following route:
-
-   ```
-   Destination: 0.0.0.0/0
-   Target: <NAT-Gateway-ID>
-   ```
-
-4. **Associate this Route Table** with the **private subnets** where the App EC2 resides:
-
-   - `myapp-dev-app-subnet-az1`
-   - `myapp-dev-app-subnet-az2`
-
----
 
 ### 🧪 Test RDS Connectivity from App Tier
 
@@ -803,11 +820,5 @@ mysql -h <rds-endpoint> -u <db-username> -p
 
 ---
 
-## 📌 Notes
 
-- **Remove the NAT Gateway and associated route** after testing, if not needed permanently (to avoid extra cost).
-- Ensure that **IAM roles and Security Groups** are configured properly for SSH/SSM and RDS access.
-
-
----
 
