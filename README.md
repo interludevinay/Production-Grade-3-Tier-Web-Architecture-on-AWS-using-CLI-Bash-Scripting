@@ -40,7 +40,7 @@ This project demonstrates how to deploy a complete **production-grade 3-Tier Web
 
 ## 📷 Architecture Diagram
 
-<img width="1200" height="1106" alt="Image" src="https://github.com/user-attachments/assets/c5406b98-4e0e-417b-af4d-9ca7eb6546a6" />
+<img width="900" height="850" alt="Image" src="https://github.com/user-attachments/assets/c5406b98-4e0e-417b-af4d-9ca7eb6546a6" />
 
 ---
 
