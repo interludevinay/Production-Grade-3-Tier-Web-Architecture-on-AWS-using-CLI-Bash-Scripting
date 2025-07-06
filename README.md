@@ -317,6 +317,8 @@ aws ec2 associate-route-table \
   --subnet-id ${PrivateSubnetId2} \
   --route-table-id ${PrivateRTId}
 ```
+> Same for another Subents
+
 ### 6. Security Groups  
 - **6a. WebTierSG – allows HTTP, SSH**
 ```
