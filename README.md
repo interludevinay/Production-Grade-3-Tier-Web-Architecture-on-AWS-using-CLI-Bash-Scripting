@@ -618,21 +618,7 @@ aws autoscaling create-auto-scaling-group \
   --health-check-grace-period 120 \
   --tags "Key=Name,Value=WebASGInstance,PropagateAtLaunch=true"
 ```
-- **11b. ASG for App Tier**
-```
-aws autoscaling create-auto-scaling-group \
-  --auto-scaling-group-name AppASG \
-  --launch-template LaunchTemplateName=AppTierLaunchTemplate,Version=1 \
-  --min-size 1 \
-  --max-size 4 \
-  --desired-capacity 1 \
-  --vpc-zone-identifier "${PrivateSubnetId1},${PrivateSubnetId2}" \
-  --target-group-arns ${AppTGArn} \
-  --health-check-type ELB \
-  --health-check-grace-period 120 \
-  --tags "Key=Name,Value=AppASGInstance,PropagateAtLaunch=true"
-```
-- **11c. Scaling policies (based on CPU or network usage)**
+- **11b. Scaling policies (based on CPU or network usage)**
 ```
 aws autoscaling put-scaling-policy \
   --policy-name WebTargetTrackingPolicy \
@@ -647,6 +633,21 @@ aws autoscaling put-scaling-policy \
   }'
 
 ```
+- **11c. ASG for App Tier**
+```
+aws autoscaling create-auto-scaling-group \
+  --auto-scaling-group-name AppASG \
+  --launch-template LaunchTemplateName=AppTierLaunchTemplate,Version=1 \
+  --min-size 1 \
+  --max-size 4 \
+  --desired-capacity 1 \
+  --vpc-zone-identifier "${PrivateSubnetId1},${PrivateSubnetId2}" \
+  --target-group-arns ${AppTGArn} \
+  --health-check-type ELB \
+  --health-check-grace-period 120 \
+  --tags "Key=Name,Value=AppASGInstance,PropagateAtLaunch=true"
+```
+
 
 ### 12. RDS Setup  
 - **12a. Create a DB Subnet Group (must include 2 subnets in different AZs)**
