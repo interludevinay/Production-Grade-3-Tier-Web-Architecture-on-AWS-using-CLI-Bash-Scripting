@@ -218,106 +218,135 @@ PrivateDbSubnetId2=$(aws ec2 describe-subnets \
     --output text)
 ```
 
-### 4. Route Tables  
-- **4a. Create a route table (Public)**  
+### 4. Create NAT Gateways & Route Tables
+- **4a. Create a Public Route Table**
 ```
 aws ec2 create-route-table \
-    --vpc-id ${VpcId} \
-    --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=PublicRT}]'
+  --vpc-id ${VpcId} \
+  --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=PublicRT}]'
 ```
 ```
-RouteTableId=$(aws ec2 describe-route-tables \
-    --filters "Name=tag:Name,Values=PublicRT" \
-    --query RouteTables[].RouteTableId \
-    --output text)
+PublicRouteTableId=$(aws ec2 describe-route-tables \
+  --filters "Name=tag:Name,Values=PublicRT" \
+  --query 'RouteTables[0].RouteTableId' \
+  --output text)
 ```
-- **4b. Add route to Internet Gateway (Public)**  
+- **4b. Add Route to Internet Gateway in Public Route Table**
+
 ```
 aws ec2 create-route \
-    --route-table-id ${RouteTableId} \
-    --destination-cidr-block 0.0.0.0/0 \
-    --gateway-id ${IgwId}
+  --route-table-id ${PublicRouteTableId} \
+  --destination-cidr-block 0.0.0.0/0 \
+  --gateway-id ${IgwId}
+
 ```
-- **4c. Associate public subnets with this route table (Public)**
+- **4c. Associate Public Route Table with Public Subnets**
 ```
 aws ec2 associate-route-table \
   --subnet-id ${SubnetId1} \
-  --route-table-id ${RouteTableId}
+  --route-table-id ${PublicRouteTableId}
+
 aws ec2 associate-route-table \
   --subnet-id ${SubnetId2} \
-  --route-table-id ${RouteTableId}
+  --route-table-id ${PublicRouteTableId}
 ```
-
-- **4d. Create a route table (Private)**  
+- **4d. Create NAT Gateway in AZ-a (Public Subnet 1)**
 ```
-aws ec2 create-route-table \
-    --vpc-id ${VpcId} \
-    --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=PrivateRT}]'
-```
-```
-PrivateRouteTableId=$(aws ec2 describe-route-tables \
-    --filters "Name=tag:Name,Values=PrivateRT" \
-    --query RouteTables[].RouteTableId \
-    --output text)
-```
-- **4e. Associate private subnets with this route table (Private)**
-```
-aws ec2 associate-route-table \
-  --subnet-id ${PrivateSubnetId1} \
-  --route-table-id ${PrivateRouteTableId}
-aws ec2 associate-route-table \
-  --subnet-id ${PrivateSubnetId2} \
-  --route-table-id ${PrivateRouteTableId}
-aws ec2 associate-route-table \
-  --subnet-id ${PrivateDbSubnetId1} \
-  --route-table-id ${PrivateRouteTableId}
-aws ec2 associate-route-table \
-  --subnet-id ${PrivateDbSubnetId2} \
-  --route-table-id ${PrivateRouteTableId}
-```
-
-### 5. NAT Gateway (for App Tier)
-- Elastic IP allocation
-```
-EipAllocationId=$(aws ec2 allocate-address \
+EipAllocationId1=$(aws ec2 allocate-address \
   --domain vpc \
   --query 'AllocationId' \
   --output text)
-```
 
-- NAT Gateway in public subnet
-```
-NatGatewayId=$(aws ec2 create-nat-gateway \
+NatGatewayId1=$(aws ec2 create-nat-gateway \
   --subnet-id ${SubnetId1} \
-  --allocation-id $EipAllocationId \
+  --allocation-id ${EipAllocationId1} \
   --query 'NatGateway.NatGatewayId' \
   --output text)
+
+aws ec2 wait nat-gateway-available --nat-gateway-ids ${NatGatewayId1}
 ```
-- Create a Route Table for Private Subnets
+- **4e. Create NAT Gateway in AZ-b (Public Subnet 2)**
 ```
-PrivateRTId=$(aws ec2 create-route-table \
+EipAllocationId2=$(aws ec2 allocate-address \
+  --domain vpc \
+  --query 'AllocationId' \
+  --output text)
+
+NatGatewayId2=$(aws ec2 create-nat-gateway \
+  --subnet-id ${SubnetId2} \
+  --allocation-id ${EipAllocationId2} \
+  --query 'NatGateway.NatGatewayId' \
+  --output text)
+
+aws ec2 wait nat-gateway-available --nat-gateway-ids ${NatGatewayId2}
+```
+- **Create Private Route Table for AZ-a and Route via NAT Gateway 1**
+```
+aws ec2 create-route-table \
   --vpc-id ${VpcId} \
-  --query 'RouteTable.RouteTableId' \
+  --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=PrivateRT-A}]'
+
+PrivateRouteTableIdA=$(aws ec2 describe-route-tables \
+  --filters "Name=tag:Name,Values=PrivateRT-A" \
+  --query 'RouteTables[0].RouteTableId' \
   --output text)
 ```
-- Private route table routes `0.0.0.0/0` through NAT Gateway
 ```
 aws ec2 create-route \
-  --route-table-id ${PrivateRTId} \
+  --route-table-id ${PrivateRouteTableIdA} \
   --destination-cidr-block 0.0.0.0/0 \
-  --nat-gateway-id ${NatGatewayId}
-```
-- Associated with App Tier subnets with route table
-```
+  --nat-gateway-id ${NatGatewayId1}
+
 aws ec2 associate-route-table \
   --subnet-id ${PrivateSubnetId1} \
-  --route-table-id ${PrivateRTId}
+  --route-table-id ${PrivateRouteTableIdA}
+```
+- **4g. Create Private Route Table for AZ-b and Route via NAT Gateway 2**
+```
+aws ec2 create-route-table \
+  --vpc-id ${VpcId} \
+  --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=PrivateRT-B}]'
+
+PrivateRouteTableIdB=$(aws ec2 describe-route-tables \
+  --filters "Name=tag:Name,Values=PrivateRT-B" \
+  --query 'RouteTables[0].RouteTableId' \
+  --output text)
+```
+```
+aws ec2 create-route \
+  --route-table-id ${PrivateRouteTableIdB} \
+  --destination-cidr-block 0.0.0.0/0 \
+  --nat-gateway-id ${NatGatewayId2}
 
 aws ec2 associate-route-table \
   --subnet-id ${PrivateSubnetId2} \
-  --route-table-id ${PrivateRTId}
+  --route-table-id ${PrivateRouteTableIdB}
 ```
-> Same for another Subents
+
+### 5. Create Route Table for DB Tier (No Internet Access)
+- **5a. Create DB Private Route Table**
+```
+aws ec2 create-route-table \
+  --vpc-id ${VpcId} \
+  --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=PrivateDBRT}]'
+```
+```
+PrivateDBRouteTableId=$(aws ec2 describe-route-tables \
+  --filters "Name=tag:Name,Values=PrivateDBRT" \
+  --query 'RouteTables[0].RouteTableId' \
+  --output text)
+```
+- **5b. Associate DB Subnets to the DB Route Table**
+```
+aws ec2 associate-route-table \
+  --subnet-id ${PrivateDbSubnetId1} \
+  --route-table-id ${PrivateDBRouteTableId}
+
+aws ec2 associate-route-table \
+  --subnet-id ${PrivateDbSubnetId2} \
+  --route-table-id ${PrivateDBRouteTableId}
+```
+
 
 ### 6. Security Groups  
 - **6a. WebTierSG – allows HTTP, SSH**
@@ -747,9 +776,19 @@ stress --cpu 2 --timeout 180
 
 ### 🔍 Problem
 
-The **App Tier** resides in a **private subnet**, which **does not have internet access by default** so, that's why we create **NAT Gateway** for that.
+💡 Since the App Tier is deployed in private subnets, it doesn't have internet access by default — which means we can’t directly install packages or run update scripts out of the box.
 
-To install packages (e.g., MySQL/PostgreSQL client) and verify **connectivity to an RDS database** from an EC2 instance in the App Tier, we **introduce a NAT Gateway** and **temporary modify Security groups**.
+To solve this, I set up a NAT Gateway to provide secure outbound internet access to the App Tier (for things like installing MySQL/PostgreSQL clients via user data).
+
+For testing, I temporarily adjusted security group rules to allow:
+
+✅ SSH into a Web Tier instance (which is public)
+
+🔄 Then hop from Web Tier into an App Tier instance (private)
+
+This allowed me to verify RDS connectivity, test internal communication, and confirm everything worked exactly as designed — all while keeping the DB tier completely private.
+
+🚨 Note: These changes were made strictly for testing and were rolled back after validation to maintain production-level security.
 
 ---
 
