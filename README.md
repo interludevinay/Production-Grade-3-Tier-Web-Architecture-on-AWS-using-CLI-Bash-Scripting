@@ -1,7 +1,7 @@
 # ☁️ Production-Grade 3-Tier Web Architecture on AWS using CLI & Bash Scripting
 ---
 
-# 📘 Project Overview – 3-Tier Web Application Architecture on AWS (Fully Automated via CLI)
+# 📘 Project Overview
 
 This project demonstrates how to deploy a complete, **production-grade 3-Tier Web Architecture on AWS** using only the **AWS Command Line Interface (CLI)** and **Bash scripting**, following **Infrastructure as Code (IaC)** best practices.
 
@@ -22,7 +22,7 @@ A clear network segmentation is established with **dedicated subnets** for the *
 
 ---
 
-## 🌐 Real-World Routing Using Route Tables and NAT Gateways
+### 🌐 Real-World Routing Using Route Tables and NAT Gateways
 
 - Each **public subnet** routes to the **Internet Gateway** for inbound/outbound web traffic.
 - Each **private App Tier subnet** routes through a **dedicated NAT Gateway** in the same AZ for outbound internet access (package installs, patching, etc.).
@@ -30,7 +30,7 @@ A clear network segmentation is established with **dedicated subnets** for the *
 
 ---
 
-## 🔒 Secure Architecture Using VPC, Subnets, SGs, and Load Balancers
+### 🔒 Secure Architecture Using VPC, Subnets, SGs, and Load Balancers
 
 - **Custom Security Groups** restrict access between tiers (**Web → App → DB**)
 - **Application Load Balancers (ALB)** are used to balance traffic and enhance availability
