@@ -1,16 +1,46 @@
 # ☁️ Production-Grade 3-Tier Web Architecture on AWS using CLI & Bash Scripting
 ---
 
-## 📘 Project Overview
+# 📘 Project Overview – 3-Tier Web Application Architecture on AWS (Fully Automated via CLI)
 
-This project demonstrates how to deploy a complete **production-grade 3-Tier Web Architecture** on AWS using **AWS CLI** and **Bash scripting**, following **Infrastructure as Code (IaC)** best practices.
+This project demonstrates how to deploy a complete, **production-grade 3-Tier Web Architecture on AWS** using only the **AWS Command Line Interface (CLI)** and **Bash scripting**, following **Infrastructure as Code (IaC)** best practices.
 
-### ✅ Key Highlights
-- Fully automated infrastructure provisioning
-- Scalable and modular design
-- Network isolation between tiers
-- Real-world routing setup using route tables and NAT Gateway
-- Secure architecture using VPC, subnets, SGs, and load balancers
+The architecture replicates a **real-world scalable web application environment**, with proper separation of concerns, secure network segmentation, and automation-first provisioning — all built end-to-end **without touching the AWS Console**.
+
+---
+
+## ✅ Key Highlights
+
+### ⚙️ Fully Automated Infrastructure Provisioning
+Every **VPC, subnet, NAT Gateway, route table, security group, EC2 instance, load balancer**, and **RDS instance** is provisioned using **CLI and Bash** — promoting consistency, reproducibility, and version control.
+
+### 🧩 Scalable and Modular Design
+The architecture is built to scale across **multiple Availability Zones**, supporting **high availability** with **Auto Scaling Groups** and **Load Balancers** for the Web and App Tiers.
+
+### 🔐 Network Isolation Between Tiers
+A clear network segmentation is established with **dedicated subnets** for the **Web, App, and DB tiers** — enforcing access control and minimizing the attack surface.
+
+---
+
+## 🌐 Real-World Routing Using Route Tables and NAT Gateways
+
+- Each **public subnet** routes to the **Internet Gateway** for inbound/outbound web traffic.
+- Each **private App Tier subnet** routes through a **dedicated NAT Gateway** in the same AZ for outbound internet access (package installs, patching, etc.).
+- **Private DB subnets** are fully isolated, relying solely on **internal VPC communication** from the App Tier — no internet exposure.
+
+---
+
+## 🔒 Secure Architecture Using VPC, Subnets, SGs, and Load Balancers
+
+- **Custom Security Groups** restrict access between tiers (**Web → App → DB**)
+- **Application Load Balancers (ALB)** are used to balance traffic and enhance availability
+- **EC2 user data scripts** install and configure services like **NGINX**, enabling zero-manual setup
+- **MySQL RDS** is hosted in a **private subnet group** to protect data from external access
+
+---
+
+> 💡 This architecture is suitable for both learning and production-grade environments, offering strong foundations in AWS networking, automation, and layered security.
+
 
 ---
 
