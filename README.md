@@ -844,22 +844,8 @@ ssh -i <your-key.pem> ec2-user@<App-Tier-Private-IP>
 - Use `ubuntu` for Ubuntu  
 - Use `admin` for other distributions
 
-### Step 3: Install Database Clients on App Tier (Private EC2)
 
-For **MySQL**:
-
-```bash
-# mysql client
-sudo apt update
-sudo apt install -y mysql-client
-
-# mysql server
-sudo apt install -y mysql-server
-sudo systemctl start mysql
-sudo systemctl enable mysql
-```
-
-### Step 4: Connect to RDS from App Tier
+### Step 3: Connect to RDS from App Tier
 
 #### ✅ For MySQL:
 
